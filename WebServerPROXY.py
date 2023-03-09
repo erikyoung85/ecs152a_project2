@@ -21,8 +21,6 @@ while True:
     # Set up a new connection from the client
     connectionSocket, addr = serverSocket.accept() #Fill in start             #Fill in end
 
-    print(f"made connection at address: {addr}")
-
     # If an exception occurs during the execution of try clause
     # the rest of the clause is skipped
     # If the exception type matches the word after except
@@ -30,7 +28,7 @@ while True:
     try:
         # Receives the request message from the client
         message = connectionSocket.recv(1024).decode()  #Fill in start           #Fill in end
-        print("\nrecieved message:")
+        print(f"connection at {addr} sent message:")
         print(message)
 
         # Extract the path of the requested object from the message
