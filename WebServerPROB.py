@@ -21,8 +21,6 @@ while True:
     # Set up a new connection from the client
     connectionSocket, addr = serverSocket.accept() #Fill in start             #Fill in end
 
-    print(f"made connection at address: {addr}")
-
     # If an exception occurs during the execution of try clause
     # the rest of the clause is skipped
     # If the exception type matches the word after except
@@ -30,7 +28,7 @@ while True:
     try:
         # Receives the request message from the client
         message = connectionSocket.recv(1024).decode()  #Fill in start           #Fill in end
-        print("\nrecieved message:")
+        print(f"\nconnection at {addr} sent message:")
         print(message)
 
         # Extract the path of the requested object from the message
@@ -39,14 +37,16 @@ while True:
 
         # Because the extracted path of the HTTP request includes 
         # a character '\', we read the path from the second character 
-        f = open(filename[1:])
+        f = open(filename[1:], 'rb')
 
         # Store the entire contenet of the requested file in a temporary buffer
         outputdata = f.read() #Fill in start         #Fill in end
 
         # Send the HTTP response header line to the connection socket
         # Fill in start
-        connectionSocket.send("HTTP/1.0 200 OK\r\n".encode())
+        connectionSocket.send("HTTP/1.1 200 OK\r\n".encode())
+        if '.jpg' in filename:
+            connectionSocket.send("Content-Type: image/jpeg\r\n".encode())
 
         # required blank line
         connectionSocket.send("\r\n".encode())
@@ -54,8 +54,9 @@ while True:
         # Fill in end
 
         # Send the content of the requested file to the connection socket
-        for i in range(0, len(outputdata)):  
-            connectionSocket.send(outputdata[i].encode())
+        connectionSocket.send(outputdata)
+        # for i in range(0, len(outputdata)):  
+        #     connectionSocket.send(outputdata[i].encode())
 
         connectionSocket.send("\r\n".encode())
         
@@ -66,9 +67,7 @@ while True:
         # Send HTTP response message for file not found
         # Fill in start
 
-        errorMsg = "HTTP/1.1 404 Not Found\r\n"
-
-        connectionSocket.send(errorMsg.encode())
+        connectionSocket.send("HTTP/1.1 404 Not Found\r\nFile Not Found".encode())
         connectionSocket.send("\r\n".encode())
 
         # Fill in end
