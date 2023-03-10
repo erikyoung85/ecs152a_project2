@@ -45,8 +45,6 @@ while True:
         # Send the HTTP response header line to the connection socket
         # Fill in start
         connectionSocket.send("HTTP/1.1 200 OK\r\n".encode())
-        if '.jpg' in filename:
-            connectionSocket.send("Content-Type: image/jpeg\r\n".encode())
 
         # required blank line
         connectionSocket.send("\r\n".encode())
@@ -55,9 +53,6 @@ while True:
 
         # Send the content of the requested file to the connection socket
         connectionSocket.send(outputdata)
-        # for i in range(0, len(outputdata)):  
-        #     connectionSocket.send(outputdata[i].encode())
-
         connectionSocket.send("\r\n".encode())
         
         # Close the client connection socket
