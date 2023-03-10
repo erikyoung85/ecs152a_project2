@@ -37,10 +37,12 @@ while True:
         serverSocket = socket(AF_INET, SOCK_STREAM)
         serverSocket.connect(('', port))
 
+        #process request to forward
         request_uri = message.split()[1]
         filename = '/' + request_uri.split('/')[-1]
         processed_request = message.replace(request_uri, filename)
 
+        #forward request
         serverSocket.send(processed_request.encode())
 
         responseMessage = serverSocket.recv(1024).decode()
@@ -51,35 +53,13 @@ while True:
         statusCode = int(responseMessage.split()[1])
 
         if statusCode == 200:
-            # Extract the content type from the response message
-            contentType = responseMessage.split('Content-Type: ')[-1].split('\r\n')[0]
-
-            # Send the response message to the client
-            connectionSocket.send(responseMessage.encode())
-
-            # Send a blank line to separate the headers from the body
-            connectionSocket.send("\r\n".encode())
-
-            if contentType.startswith('image'):
-                # If the content is an image, read the data from the server socket
-                imageData = serverSocket.recv(4096)
-                while imageData:
-                    # Forward the image data to the client
-                    connectionSocket.send(imageData)
-                    imageData = serverSocket.recv(4096)
-            else:
-                # If the content is not an image, read the data from the server socket
-                responseData = responseMessage.encode()
-                # responseLength = int(responseMessage.split('Content-Length: ')[-1].split('\r\n')[0])
-                # while len(responseData) < responseLength:
-                #     responseData += serverSocket.recv(4096)
-                # Forward the response data to the client
-                connectionSocket.send(responseData)
+            responseData = responseMessage.encode()
+            connectionSocket.send(responseData)
         else:
             # If the status code is not 200, forward the response message to the client
             connectionSocket.send(responseMessage.encode())
 
-        # Close the server socket
+        connectionSocket.close()
         serverSocket.close()
 
     except IOError:
