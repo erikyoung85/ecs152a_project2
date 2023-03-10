@@ -25,58 +25,52 @@ while True:
     # the rest of the clause is skipped
     # If the exception type matches the word after except
     # the except clause is executed 
-    try:
-        # Receives the request message from the client
-        message = connectionSocket.recv(1024).decode()  #Fill in start           #Fill in end
-        print(f"\nconnection at {addr} sent message:")
-        print(message)
+    # try:
+    # Receives the request message from the client
+    message = connectionSocket.recv(1024).decode()  #Fill in start           #Fill in end
+    print(f"\nconnection at {addr} sent message:")
+    print(message)
 
-        hostname = message.split()[1].split(':')[0]
-        port = int(message.split()[1].split(':')[-1].split("/")[0])
+    hostname = message.split()[1].split(':')[0][1:]
+    port = int(message.split()[1].split(':')[1].split("/")[0])
+    print(f"forwarding to {hostname}:{port}")
 
-        serverSocket = socket(AF_INET, SOCK_STREAM)
-        serverSocket.connect(('', port))
+    serverSocket = socket(AF_INET, SOCK_STREAM)
+    serverSocket.connect((hostname, port))
 
-        #process request to forward
-        request_uri = message.split()[1]
-        filename = '/' + request_uri.split('/')[-1]
-        processed_request = message.replace(request_uri, filename)
+    #process request to forward
+    request_uri = message.split()[1]
+    filename = '/' + request_uri.split('/')[-1]
+    processed_request = message.replace(request_uri, filename)
+    print(processed_request)
 
-        #forward request
-        serverSocket.send(processed_request.encode())
+    #forward request
+    serverSocket.send(processed_request.encode())
 
-        responseMessage = serverSocket.recv(1024).decode()
-        print(f"\nConnection to {hostname} sent message:")
-        print(responseMessage)
+    # get message from server and send to client
+    print(int(1e+12))
+    responseMessage = serverSocket.recv(int(1e+9))
+    connectionSocket.send(responseMessage)
 
-        # Extract the status code from the response message
-        statusCode = int(responseMessage.split()[1])
+    serverSocket.close()
+    connectionSocket.close()
 
-        if statusCode == 200:
-            responseData = responseMessage.encode()
-            connectionSocket.send(responseData)
-        else:
-            # If the status code is not 200, forward the response message to the client
-            connectionSocket.send(responseMessage.encode())
+    # except IOError:
+    #     # Send HTTP response message for file not found
+    #     # Fill in start
 
-        connectionSocket.close()
-        serverSocket.close()
+    #     print("\nerror occurred\n")
+    #     connectionSocket.send("HTTP/1.1 404 Not Found\r\nFile Not Found".encode())
+    #     connectionSocket.send("\r\n".encode())
 
-    except IOError:
-        # Send HTTP response message for file not found
-        # Fill in start
+    #     # Fill in end
 
-        connectionSocket.send("HTTP/1.1 404 Not Found\r\nFile Not Found".encode())
-        connectionSocket.send("\r\n".encode())
+    #     # Close the client connection socket
+    #     # Fill in start
 
-        # Fill in end
+    #     connectionSocket.close()
 
-        # Close the client connection socket
-        # Fill in start
-
-        connectionSocket.close()
-
-        # Fill in end
+    #     # Fill in end
 
 proxySocket.close()  
 
