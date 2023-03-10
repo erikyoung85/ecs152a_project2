@@ -5,6 +5,8 @@ from socket import *
 #(AF_INET is used for IPv4 protocols)
 #(SOCK_STREAM is used for TCP)
 
+cache = {}
+
 proxySocket = socket(AF_INET, SOCK_STREAM)
 
 # Fill in start
@@ -31,28 +33,41 @@ while True:
         print(f"\nconnection at {addr} sent message:")
         print(message)
 
-        hostname = message.split()[1].split(':')[0][1:]
-        port = int(message.split()[1].split(':')[1].split("/")[0])
-        print(f"forwarding to {hostname}:{port}")
-
-        #process request to forward
-        request_uri = message.split()[1]
-        filename = '/' + request_uri.split('/')[-1]
-        processed_request = message.replace(request_uri, filename)
-
-        #forward request
-        serverSocket = socket(AF_INET, SOCK_STREAM)
-        serverSocket.connect((hostname, port))
-        serverSocket.sendall(processed_request.encode())
-
-        # get message from server and send to client
         response = b""
-        while True:
-            chunk = serverSocket.recv(4096)
-            if len(chunk) == 0:     # No more data received, quitting
-                break
-            response += chunk
 
+        # if in cache
+        reqLine = message.split('\n')[0]
+        if reqLine in cache:
+            print("getting response from cache")
+            response = cache[reqLine]
+
+        # if not in cache
+        else:
+            hostname = message.split()[1].split(':')[0][1:]
+            port = int(message.split()[1].split(':')[1].split("/")[0])
+            print(f"forwarding to {hostname}:{port}\n")
+
+            #process request to forward
+            request_uri = message.split()[1]
+            filename = '/' + request_uri.split('/')[-1]
+            processed_request = message.replace(request_uri, filename)
+
+            #forward request
+            serverSocket = socket(AF_INET, SOCK_STREAM)
+            serverSocket.connect((hostname, port))
+            serverSocket.sendall(processed_request.encode())
+
+            # get message from server and send to client
+            while True:
+                chunk = serverSocket.recv(4096)
+                if len(chunk) == 0:     # No more data received, quitting
+                    break
+                response += chunk
+
+            # add to cache
+            cache[reqLine] = response
+
+        # send response to client
         connectionSocket.sendall(response)
 
         serverSocket.close()
