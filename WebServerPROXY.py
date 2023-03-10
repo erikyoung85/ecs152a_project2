@@ -35,43 +35,51 @@ while True:
         port = int(message.split()[1].split(':')[-1].split("/")[0])
 
         serverSocket = socket(AF_INET, SOCK_STREAM)
-        serverSocket.connect((hostname, port))
+        serverSocket.connect(('', port))
 
-        serverSocket.send(message.encode())
-        
+        request_uri = message.split()[1]
+        filename = '/' + request_uri.split('/')[-1]
+        processed_request = message.replace(request_uri, filename)
+
+        serverSocket.send(processed_request.encode())
+
         responseMessage = serverSocket.recv(1024).decode()
+        print(f"\nConnection to {hostname} sent message:")
+        print(responseMessage)
 
-        # Extract the path of the requested object from the message
-        # The path is the second part of HTTP header, identified by [1]
-        filename = responseMessage.split()[1]
+        # Extract the status code from the response message
+        statusCode = int(responseMessage.split()[1])
 
-        # Because the extracted path of the HTTP request includes 
-        # a character '\', we read the path from the second character 
-        f = open(filename[1:], 'rb')
+        if statusCode == 200:
+            # Extract the content type from the response message
+            contentType = responseMessage.split('Content-Type: ')[-1].split('\r\n')[0]
 
-        # Store the entire contenet of the requested file in a temporary buffer
-        outputdata = f.read() #Fill in start         #Fill in end
+            # Send the response message to the client
+            connectionSocket.send(responseMessage.encode())
 
-        # Send the HTTP response header line to the connection socket
-        # Fill in start
-        connectionSocket.send("HTTP/1.1 200 OK\r\n".encode())
-        if '.jpg' in filename:
-            connectionSocket.send("Content-Type: image/jpeg\r\n".encode())
+            # Send a blank line to separate the headers from the body
+            connectionSocket.send("\r\n".encode())
 
-        # required blank line
-        connectionSocket.send("\r\n".encode())
-        
-        # Fill in end
+            if contentType.startswith('image'):
+                # If the content is an image, read the data from the server socket
+                imageData = serverSocket.recv(4096)
+                while imageData:
+                    # Forward the image data to the client
+                    connectionSocket.send(imageData)
+                    imageData = serverSocket.recv(4096)
+            else:
+                # If the content is not an image, read the data from the server socket
+                responseData = responseMessage.encode()
+                # responseLength = int(responseMessage.split('Content-Length: ')[-1].split('\r\n')[0])
+                # while len(responseData) < responseLength:
+                #     responseData += serverSocket.recv(4096)
+                # Forward the response data to the client
+                connectionSocket.send(responseData)
+        else:
+            # If the status code is not 200, forward the response message to the client
+            connectionSocket.send(responseMessage.encode())
 
-        # Send the content of the requested file to the connection socket
-        connectionSocket.send(outputdata)
-        # for i in range(0, len(outputdata)):  
-        #     connectionSocket.send(outputdata[i].encode())
-
-        connectionSocket.send("\r\n".encode())
-        
-        # Close the client connection socket
-        connectionSocket.close()
+        # Close the server socket
         serverSocket.close()
 
     except IOError:
