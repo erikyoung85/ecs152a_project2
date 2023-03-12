@@ -43,14 +43,31 @@ while True:
 
         # if not in cache
         else:
-            hostname = message.split()[1].split(':')[0][1:]
-            port = int(message.split()[1].split(':')[1].split("/")[0])
-            print(f"forwarding to {hostname}:{port}\n")
-
             #process request to forward
             request_uri = message.split()[1]
-            filename = '/' + request_uri.split('/')[-1]
-            processed_request = message.replace(request_uri, filename)
+
+            request_uri_list = request_uri.split('/')
+            # grab target server host and port
+            targetServer = request_uri_list[1]
+            # delete proxy host and port
+            del request_uri_list[1]
+            # make new uri for target server
+            new_uri = '/'.join(request_uri_list)
+            if new_uri == '':
+                new_uri = '/'
+
+            # change request line
+            processed_request = message.replace(request_uri, new_uri)
+
+            # change host line
+            currHost = message.split('\n')[1].split()[1]
+            processed_request = processed_request.replace(currHost, targetServer)
+
+            # get hostname and port from serverDetails
+            targetServer = targetServer.split(':')
+            hostname = targetServer[0]
+            port = int(targetServer[1]) if len(targetServer) > 1 else 80
+            print(f"forwarding to {hostname}:{port}\n")
 
             #forward request
             serverSocket = socket(AF_INET, SOCK_STREAM)
@@ -58,11 +75,14 @@ while True:
             serverSocket.sendall(processed_request.encode())
 
             # get message from server and send to client
+            chunkNum = 1
             while True:
                 chunk = serverSocket.recv(4096)
                 if len(chunk) == 0:     # No more data received, quitting
                     break
                 response += chunk
+                print(f"sent {chunkNum} chunks")
+                chunkNum += 1
 
             # add to cache
             cache[reqLine] = response
